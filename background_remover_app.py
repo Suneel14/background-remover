@@ -1,22 +1,18 @@
 import streamlit as st
 from rembg import remove
-from PIL import Image
+from PIL import Image, ImageOps
 import io
-import base64
 import requests
 
 
 def remove_bg(image):
     output_image = remove(image)
-    return output_image
+    img = Image.open(io.BytesIO(output_image)).convert("RGBA")
+    white_bg = Image.new("RGBA", img.size, (255, 255, 255, 255))
 
+    final_img = Image.alpha_composite(white_bg, img)
 
-def get_image_download_link(img, filename, text):
-    buffered = io.BytesIO()
-    img.save(buffered, format="PNG")
-    img_str = base64.b64encode(buffered.getvalue()).decode()
-    href = f'<a href="data:file/png;base64,{img_str}" download="{filename}">{text}</a>'
-    return href
+    return final_img.convert("RGB")
 
 
 def main():
@@ -39,9 +35,8 @@ def main():
 
             st.image(original_image, caption='Original Image', use_column_width=True)
 
-            with st.spinner('Removing background...'):
+            with st.spinner('Processing image...'):
                 result_image = remove_bg(image_data)
-                img = Image.open(io.BytesIO(result_image))
 
             col1, col2 = st.columns(2)
 
@@ -49,13 +44,12 @@ def main():
                 st.image(original_image, caption='Original Image', use_column_width=True)
 
             with col2:
-                st.image(img, caption='Image with Background Removed', use_column_width=True)
+                st.image(result_image, caption='Image with White Background', use_column_width=True)
 
-            # Download button
-            # st.markdown(
-            #     get_image_download_link(img, "background_removed.png", 'Download Image with Background Removed'),
-            #     unsafe_allow_html=True)
-            st.download_button(label="Download Output Image", data=result_image, mime="image/png")
+            buffered = io.BytesIO()
+            result_image.save(buffered, format="PNG")
+            st.download_button(label="Download Output Image", data=buffered.getvalue(), mime="image/png")
+
         except Exception as e:
             st.error(f"An error occurred: {e}")
 
