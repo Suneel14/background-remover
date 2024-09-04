@@ -5,12 +5,12 @@ import io
 import requests
 
 
-def remove_bg(image):
+def remove_bg(image, bg_color):
     output_image = remove(image)
     img = Image.open(io.BytesIO(output_image)).convert("RGBA")
-    white_bg = Image.new("RGBA", img.size, (255, 255, 255, 255))
 
-    final_img = Image.alpha_composite(white_bg, img)
+    colored_bg = Image.new("RGBA", img.size, bg_color + (255,))
+    final_img = Image.alpha_composite(colored_bg, img)
 
     return final_img.convert("RGB")
 
@@ -22,6 +22,9 @@ def main():
 
     uploaded_file = st.file_uploader("Upload an image...", type=["jpg", "jpeg", "png"])
     url = st.text_input("...or paste an Image URL here")
+
+    bg_color = st.color_picker("Choose background color", "#FFFFFF")
+    bg_color = tuple(int(bg_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
 
     if uploaded_file is not None or url:
         try:
@@ -36,7 +39,7 @@ def main():
             st.image(original_image, caption='Original Image', use_column_width=True)
 
             with st.spinner('Processing image...'):
-                result_image = remove_bg(image_data)
+                result_image = remove_bg(image_data, bg_color)
 
             col1, col2 = st.columns(2)
 
@@ -44,7 +47,7 @@ def main():
                 st.image(original_image, caption='Original Image', use_column_width=True)
 
             with col2:
-                st.image(result_image, caption='Image with White Background', use_column_width=True)
+                st.image(result_image, caption='Image with Custom Background', use_column_width=True)
 
             buffered = io.BytesIO()
             result_image.save(buffered, format="PNG")
